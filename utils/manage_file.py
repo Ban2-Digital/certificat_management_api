@@ -8,18 +8,18 @@ async def save_upload_file(upload_file: UploadFile, upload_to: str):
     try:
         # Create a unique filename
         filename = upload_file.filename
-        print(filename)
+        # print(filename)
         file_path = os.path.join(MEDIA_ROOT, upload_to, filename)
         base_path = os.path.join(MEDIA_ROOT, upload_to)
-        print("file_path before while loop", file_path)
-        print("file_path before while loop exist", os.path.exists(file_path))
+        # print("file_path before while loop", file_path)
+        # print("file_path before while loop exist", os.path.exists(file_path))
         # Check if the file already exists
         while os.path.exists(file_path):
             # Generate a random 7-digit number
             random_number = random.randint(1000000, 9999999)
             # Append the random number to the filename
             file_path = os.path.join(MEDIA_ROOT, upload_to, f"{random_number}_{filename}")
-            print("file_path in while loop", file_path)
+            # print("file_path in while loop", file_path)
         
         # Ensure the directory exists
         os.makedirs(os.path.dirname(file_path), exist_ok=True)

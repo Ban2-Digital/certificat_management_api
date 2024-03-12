@@ -50,7 +50,7 @@ async def get_all_formations(db: db_dependency):
         raise HTTPException(status_code=404, detail="Aucune formation n'a été ajoutée !")
     return result
 
-@app.get("/formations/{formation_id}")
+@app.get("/formations/{formation_id}/")
 async def get_formation(
     db: db_dependency, 
     formation_id: int,
@@ -63,7 +63,7 @@ async def get_formation(
     return result
 
 
-@app.delete("/formations/{formation_id}")
+@app.delete("/formations/{formation_id}/")
 async def delete_formation(
     db: db_dependency, 
     formation_id: int,
@@ -120,7 +120,7 @@ async def create_formation(
         return e
 
 
-@app.put("/formations/{formation_id}")
+@app.put("/formations/{formation_id}/")
 async def update_formation(
     db: db_dependency, 
     formation_id: int,
@@ -170,6 +170,136 @@ async def update_formation(
 ###########################################################################################
 
 
+###################################### COURS ######################################
+@app.get("/cours/")
+async def get_all_courses(db: db_dependency):
+    
+    result = db.query(models.Cours).all()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Aucun cours n'a été ajoutée !")
+    return result
+
+@app.get("/cours/{cours_id}/")
+async def get_course(
+    db: db_dependency, 
+    cours_id: int,
+    ):
+    
+    result = db.query(models.Cours).filter(models.Cours.id==cours_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Le cours n'existe pas !")
+    return result
+
+
+@app.delete("/cours/{cours_id}/")
+async def delete_course(
+    db: db_dependency, 
+    cours_id: int,
+    ):
+    
+    result = db.query(models.Cours).filter(models.Cours.id==cours_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Le cours n'existe pas !")
+    # print("before delete")
+    
+    try:
+        db.query(models.Cours).filter(models.Cours.id==cours_id).delete()
+        # print("delete")
+        db.commit()
+    except Exception as e:
+        return e
+    
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"message": "Cours supprimé !"})
+
+
+@app.post("/cours/")
+async def create_course(
+    db: db_dependency, 
+    libelle: str = Form(...),
+    description: str = Form(...),
+    status: int = Form(...),
+    categorieID: int = Form(...),
+    imageUrl: UploadFile = File(...)
+    ):
+    
+    upload_to = "cours"
+    # Save the uploaded file and get the URL
+    url = await save_upload_file(imageUrl, upload_to)
+
+    today_date = datetime.now()
+    # print("the image url :", url)
+    db_cours = models.Cours(
+        libelle=libelle,
+        description=description,
+        imageUrl=url,
+        status=status,
+        createdAt=today_date,
+        categorieID=categorieID
+    )
+    try:
+        # Save the Formation object to the database
+        db.add(db_cours)
+        db.commit()
+        db.refresh()
+
+        return {"data": db_cours}
+    except Exception as e:
+        return e
+
+
+@app.put("/cours/{cours_id}/")
+async def update_course(
+    db: db_dependency, 
+    cours_id: int,
+    libelle: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    status: Optional[int] = Form(None),
+    categorieID: Optional[int] = Form(None),
+    imageUrl: Optional[UploadFile] = File(None),
+    ):
+    
+    db_course = db.query(models.Cours).filter(models.Cours.id==cours_id).first()
+    
+    if db_course:
+        upload_to = "cours"
+        if imageUrl:
+            # Save the uploaded file and get the URL
+            url = await save_upload_file(imageUrl, upload_to)
+        else:
+            url = ""
+
+        today_date = datetime.now()
+        # print("the image url :", url)
+        if libelle:
+            db_course.libelle=libelle
+        if description:
+            db_course.description=description
+        if url:
+            db_course.imageUrl=url
+        if status:
+            db_course.status=status
+        if categorieID:
+            db_course.categorieID=categorieID
+        
+        db_course.updatedAt=today_date
+
+        try:
+            # Save the Formation object to the database
+            db.commit()
+            db.refresh()
+            
+            return {"data": db_course,}
+        except Exception as e:
+            return e
+    else:
+        raise HTTPException(status_code=404, detail="Le cours n'existe pas !")
+    
+###########################################################################################
+
+
 ###################################### SESSIONS ######################################
 @app.get("/sessions/")
 async def get_all_sessions(db: db_dependency):
@@ -180,7 +310,7 @@ async def get_all_sessions(db: db_dependency):
         raise HTTPException(status_code=404, detail="Aucune session n'a été ajoutée !")
     return result
 
-@app.get("/sessions/{session_id}")
+@app.get("/sessions/{session_id}/")
 async def get_session(
     db: db_dependency, 
     session_id: int,
@@ -193,7 +323,7 @@ async def get_session(
     return result
 
 
-@app.delete("/sessions/{session_id}")
+@app.delete("/sessions/{session_id}/")
 async def delete_session(
     db: db_dependency, 
     session_id: int,
@@ -253,7 +383,7 @@ async def create_session(
         return e
 
 
-@app.put("/sessions/{session_id}")
+@app.put("/sessions/{session_id}/")
 async def update_session(
     db: db_dependency, 
     session_id: int,
@@ -307,93 +437,403 @@ async def update_session(
 ###########################################################################################
 
 ###################################### FORMATION COURS ######################################
-@app.get("/formation/{formation_id}/courses/")
-async def get_all_course_by_formation(db: db_dependency, formation_id: int):
+# @app.get("/formation/{formation_id}/courses/")
+# async def get_all_course_by_formation(db: db_dependency, formation_id: int):
     
-    result = db.query(models.FormationCours).filter(models.FormationCours.formationID.id==formation_id).all()
+#     result = db.query(models.FormationCours).filter(models.FormationCours.formationID.id==formation_id).all()
+    
+#     if not result:
+#         raise HTTPException(status_code=404, detail="Aucun cours n'a été ajouté !")
+    
+#     return result
+
+# @app.get("/formation/{formation_id}/courses/{cours_formation_id}/")
+# async def get_all_course_by_formation(db: db_dependency, formation_id: int, cours_formation_id: int):
+    
+#     result = db.query(models.FormationCours).filter(models.FormationCours.formationID.id==formation_id, models.FormationCours.coursID.id==formation_id).first()
+    
+#     if not result:
+#         raise HTTPException(status_code=404, detail="Aucun cours n'a été ajouté !")
+    
+#     return result
+
+# @app.post("/formation/{formation_id}/set_course")
+# async def set_course_to_formation(db: db_dependency, formation_id:int, course_id: int = Form(), formateur_id: int = Form()):
+        
+#         createdAt = datetime.now()
+#         db_session = models.FormationCours(
+#             coursID = course_id,
+#             formationID = formation_id,
+#             formateurID = formateur_id,
+#             createdAt = createdAt,
+#         )
+        
+#         try:
+#             # Save the Session object to the database
+#             db.add(db_session)
+#             db.commit()
+#             db.refresh()
+
+#             return {"data": db_session}
+#         except Exception as e:
+#             print(e)
+#             return e
+        
+# @app.put("/formation/{formation_id}/set_course")
+# async def update_course_in_formation(db: db_dependency, formation_id:int, course_id: Optional[int] = Form(None), formateur_id: Optional[int] = Form(None)):
+        
+#         db_session = db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).first()
+        
+#         if course_id:
+#             db_session.coursID = course_id
+        
+#         if formateur_id:
+#             db_session.formateurID = formateur_id
+        
+#         updatedAt = datetime.now()
+#         db_session.updatedAt = updatedAt
+        
+#         try:
+#             db.commit()
+#             db.refresh()
+
+#             return {"data": db_session}
+#         except Exception as e:
+#             print(e)
+#             return e
+        
+# @app.delete("/formation/{formation_id}/delete")
+# async def delete_formation(
+#     db: db_dependency, 
+#     formation_id: int,
+#     ):
+    
+#     result = db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).first()
+    
+#     if not result:
+#         raise HTTPException(status_code=404, detail="La formation n'existe pas !")
+#     # print("before delete")
+    
+#     try:
+#         db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).delete()
+#         # print("delete")
+#         db.commit()
+#     except Exception as e:
+#         return e
+    
+#     return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"message": "formation supprimée !"})
+
+###########################################################################################
+
+######################################## TAG ########################################
+@app.get("/tags/")
+async def get_all_tags(db: db_dependency):
+    result = db.query(models.Tag).all()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucun tag"}})
+
+@app.get("/tags/{tag_id}/")
+async def get_tag(db: db_dependency, tag_id: int): 
+
+    result = db.query(models.Tag).filter(models.Tag.id==tag_id).first()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "le tag n'existe pas !"}})
+
+@app.post("/tags/")
+async def create_tag(db: db_dependency, 
+    libelle: str = Form(...),
+    ): 
+
+    today_date = datetime.now()
+    db_tag = models.Tag(
+        libelle=libelle,
+        createAt=today_date,
+    )
+    try:
+        # Save  object to the database
+        db.add(db_tag)
+        db.commit()
+        db.refresh(db_tag)
+
+        return db_tag 
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation du tag !")
+
+
+@app.put("/tags/{tag_id}/")
+async def update_tag(
+    db: db_dependency,
+    tag_id: int, 
+    libelle: str = Form(),
+    ): 
+
+    db_tag = db.query(models.Tag).filter(models.Tag.id==tag_id).first()
+    today_date = datetime.now()
+
+    if db_tag:
+        if libelle:
+            db_tag.libelle=libelle        
+        db_tag.updatedAt=today_date
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content="le tag n'existe pas !")
+    try:
+        # Save  object to the database
+        db.commit()
+        db.refresh(db_tag)
+
+        return db_tag
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations du tag !")
+
+
+@app.delete("/tags/{tag_id}/")
+async def delete_tag(db: db_dependency, tag_id: int): 
+
+    result = db.query(models.Tag).filter(models.Tag.id==tag_id).first()
     
     if not result:
-        raise HTTPException(status_code=404, detail="Aucun cours n'a été ajouté !")
-    
-    return result
-
-@app.get("/formation/{formation_id}/courses/{cours_formation_id}")
-async def get_all_course_by_formation(db: db_dependency, formation_id: int, cours_formation_id: int):
-    
-    result = db.query(models.FormationCours).filter(models.FormationCours.formationID.id==formation_id, models.FormationCours.coursID.id==formation_id).first()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail="Aucun cours n'a été ajouté !")
-    
-    return result
-
-@app.post("/formation/{formation_id}/set_course")
-async def set_course_to_formation(db: db_dependency, formation_id:int, course_id: int = Form(), formateur_id: int = Form()):
-        
-        createdAt = datetime.now()
-        db_session = models.FormationCours(
-            coursID = course_id,
-            formationID = formation_id,
-            formateurID = formateur_id,
-            createdAt = createdAt,
-        )
-        
-        try:
-            # Save the Session object to the database
-            db.add(db_session)
-            db.commit()
-            db.refresh()
-
-            return {"data": db_session}
-        except Exception as e:
-            print(e)
-            return e
-        
-@app.put("/formation/{formation_id}/set_course")
-async def update_course_in_formation(db: db_dependency, formation_id:int, course_id: Optional[int] = Form(None), formateur_id: Optional[int] = Form(None)):
-        
-        db_session = db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).first()
-        
-        if course_id:
-            db_session.coursID = course_id
-        
-        if formateur_id:
-            db_session.formateurID = formateur_id
-        
-        updatedAt = datetime.now()
-        db_session.updatedAt = updatedAt
-        
-        try:
-            db.commit()
-            db.refresh()
-
-            return {"data": db_session}
-        except Exception as e:
-            print(e)
-            return e
-        
-@app.delete("/formation/{formation_id}/delete")
-async def delete_formation(
-    db: db_dependency, 
-    formation_id: int,
-    ):
-    
-    result = db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).first()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail="La formation n'existe pas !")
+        raise HTTPException(status_code=404, detail="Le tag n'existe pas !")
     # print("before delete")
     
     try:
-        db.query(models.FormationCours).filter(models.FormationCours.id==formation_id).delete()
+        db.query(models.Tag).filter(models.Tag.id==tag_id).delete()
+        # print("delete")
+        db.commit()
+        return JSONResponse(status_code=status.HTTP_200_OK, content="Le tag à été supprimé !")
+        
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produite lors de la suppression du tag")
+
+############################################################################################
+
+######################################## CATEGORIE ########################################
+@app.get("/categories/")
+async def get_all_categories(db: db_dependency):
+    result = db.query(models.Categorie).all()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucune catégorie"}})
+
+@app.get("/categories/{cat_id}/")
+async def get_category(db: db_dependency, cat_id: int): 
+
+    result = db.query(models.Categorie).filter(models.Categorie.id==cat_id).first()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "la catégorie n'existe pas !"}})
+
+@app.post("/categories/")
+async def create_category(db: db_dependency, 
+    libelle: str = Form(...),
+    ): 
+
+    today_date = datetime.now()
+    db_cat = models.Categorie(
+        libelle=libelle,
+        createAt=today_date,
+    )
+    try:
+        # Save  object to the database
+        db.add(db_cat)
+        db.commit()
+        db.refresh(db_cat)
+
+        return db_cat 
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation de la catégorie !")
+
+
+@app.put("/categories/{cat_id}/")
+async def update_category(
+    db: db_dependency,
+    cat_id: int, 
+    libelle: str = Form(),
+    ): 
+
+    db_tag = db.query(models.Categorie).filter(models.Categorie.id==cat_id).first()
+    today_date = datetime.now()
+
+    if db_tag:
+        if libelle:
+            db_tag.libelle=libelle        
+        db_tag.updatedAt=today_date
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content="la catégorie n'existe pas !")
+    try:
+        # Save  object to the database
+        db.commit()
+        db.refresh(db_tag)
+
+        return db_tag
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations la catégorie !")
+
+
+@app.delete("/categories/{cat_id}/")
+async def delete_category(db: db_dependency, cat_id: int): 
+
+    result = db.query(models.Categorie).filter(models.Categorie.id==cat_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="La categorie n'existe pas !")
+    # print("before delete")
+    
+    try:
+        db.query(models.Categorie).filter(models.Categorie.id==cat_id).delete()
+        # print("delete")
+        db.commit()
+        return JSONResponse(status_code=status.HTTP_200_OK, content="La catégorie à été supprimé !")
+        
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produite lors de la suppression de la categorie")
+
+############################################################################################
+
+###################################### FICHE PRESENCE ######################################
+@app.get("/fiche_presences/")
+async def get_all_attendance_sheet(db: db_dependency):
+    
+    result = db.query(models.FichePresence).all()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Aucune fiche de présence n'a été ajoutée !")
+    return result
+
+@app.get("/fiche_presences/{sheet_id}/")
+async def get_attendance_sheet(
+    db: db_dependency, 
+    sheet_id: int,
+    ):
+    
+    result = db.query(models.FichePresence).filter(models.FichePresence.id==sheet_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="La fiche de présence n'existe pas !")
+    return result
+
+
+@app.delete("/fiche_presences/{sheet_id}/")
+async def delete_attendance_sheet(
+    db: db_dependency, 
+    sheet_id: int,
+    ):
+    
+    result = db.query(models.FichePresence).filter(models.FichePresence.id==sheet_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="La fiche de présence n'existe pas !")
+    # print("before delete")
+    
+    try:
+        db.query(models.FichePresence).filter(models.FichePresence.id==sheet_id).delete()
         # print("delete")
         db.commit()
     except Exception as e:
         return e
     
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"message": "formation supprimée !"})
+    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={"message": "La fiche de présence à été supprimée !"})
 
-###########################################################################################
+
+@app.post("/fiche_presences/{sheet_id}/")
+async def create_attendance_sheet(
+    db: db_dependency, 
+    agentEntrepriseID: int = Form(...),
+    sessionformationID: int = Form(...),
+    formateurID: int = Form(...),
+    dateDebut: datetime = Form(...),
+    dateFin: datetime = Form(...),
+    signatureElectronique: UploadFile = File(...),
+    ):
+
+    upload_to = "formateur/signatures"
+    # Save the uploaded file and get the URL
+    url = await save_upload_file(signatureElectronique, upload_to)
+    
+    today_date = datetime.now()
+    # print("the image url :", url)
+    db_attendance = models.FichePresence(
+        agentEntrepriseID=agentEntrepriseID,
+        sessionformationID=sessionformationID,
+        formateurID=formateurID,
+        dateDebut=dateDebut,
+        dateFin=dateFin,
+        signatureElectronique=url,
+        createdAt=today_date
+    )
+    try:
+        # Save the Formation object to the database
+        db.add(db_attendance)
+        db.commit()
+        db.refresh()
+
+        return {"data": db_attendance}
+    except Exception as e:
+        return e
+
+
+@app.put("/fiche_presences/{sheet_id}/")
+async def update_attendance_sheet(
+    db: db_dependency, 
+    sheet_id: int,
+    agentEntrepriseID: Optional[int] = Form(None),
+    sessionformationID: Optional[int] = Form(None),
+    formateurID: Optional[int] = Form(None),
+    dateDebut: Optional[datetime] = Form(None),
+    dateFin: Optional[datetime] = Form(None),
+    signatureElectronique: Optional[UploadFile] = File(None),
+    ):
+    
+    db_attendance_sheet = db.query(models.FichePresence).filter(models.FichePresence.id==sheet_id).first()
+    
+    if db_attendance_sheet:
+        upload_to = "formations"
+        if signatureElectronique:
+            # Save the uploaded file and get the URL
+            url = await save_upload_file(signatureElectronique, upload_to)
+        else:
+            url = ""
+
+        today_date = datetime.now()
+        # print("the image url :", url)
+        if agentEntrepriseID:
+            db_attendance_sheet.agentEntrepriseID=agentEntrepriseID
+        if sessionformationID:
+            db_attendance_sheet.sessionformationID=sessionformationID
+        if url:
+            db_attendance_sheet.imageUrl=url
+        if dateDebut:
+            db_attendance_sheet.dateDebut=dateDebut
+        if dateFin:
+            db_attendance_sheet.dateFin=dateFin
+        if formateurID:
+            db_attendance_sheet.formateurID=formateurID
+        
+        db_attendance_sheet.updatedAt=today_date
+
+        try:
+            # Save the Formation object to the database
+            db.commit()
+            db.refresh()
+            
+            return {"data": db_attendance_sheet,}
+        except Exception as e:
+            return e
+    else:
+        raise HTTPException(status_code=404, detail="La fiche de présence n'existe pas !")
+ 
+############################################################################################
 
 ########################################### USER ###########################################
 @app.get("/users/")
@@ -405,7 +845,7 @@ async def get_all_user(db: db_dependency):
     else:
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucun utilisateur"}})
 
-@app.get("/users/{user_id}")
+@app.get("/users/{user_id}/")
 async def get_user(db: db_dependency, user_id: int): 
 
     result = db.query(models.User).filter(models.User.id==user_id).first()
@@ -447,7 +887,7 @@ async def create_user(db: db_dependency,
         print(e)
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation de l'utilisateur !")
 
-@app.put("/users/{user_id}")
+@app.put("/users/{user_id}/")
 async def update_user(
     db: db_dependency,
     user_id: int, 
@@ -490,10 +930,10 @@ async def update_user(
         return db_user
     except Exception as e:
         print(e)
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors lors de la mise a jour des informations de l'utilisateur !")
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations de l'utilisateur !")
 
 
-@app.delete("/users/{user_id}")
+@app.delete("/users/{user_id}/")
 async def delete_user(db: db_dependency, user_id: int): 
 
     result = db.query(models.User).filter(models.User.id==user_id).first()
@@ -523,7 +963,7 @@ async def get_all_roles(db: db_dependency):
     else:
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucun role"}})
 
-@app.get("/roles/{role_id}")
+@app.get("/roles/{role_id}/")
 async def get_role(db: db_dependency, role_id: int): 
 
     result = db.query(models.Role).filter(models.Role.id==role_id).first()
@@ -554,7 +994,7 @@ async def create_role(db: db_dependency,
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation du role !")
 
 
-@app.put("/roles/{role_id}")
+@app.put("/roles/{role_id}/")
 async def update_role(
     db: db_dependency,
     role_id: int, 
@@ -581,7 +1021,7 @@ async def update_role(
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations du role !")
 
 
-@app.delete("/roles/{role_id}")
+@app.delete("/roles/{role_id}/")
 async def delete_role(db: db_dependency, role_id: int): 
 
     result = db.query(models.Role).filter(models.Role.id==role_id).first()
@@ -611,7 +1051,7 @@ async def get_all_history(db: db_dependency):
     else:
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucun historique"}})
 
-@app.get("/historiques/{historique_id}")
+@app.get("/historiques/{historique_id}/")
 async def get_history(db: db_dependency, history_id: int): 
 
     result = db.query(models.Historique).filter(models.Historique.id==history_id).first()
@@ -646,7 +1086,7 @@ async def create_history(db: db_dependency,
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation de l'historique !")
 
 
-@app.put("/history/{history_id}")
+@app.put("/history/{history_id}/")
 async def update_history(
     db: db_dependency,
     history_id: int, 
@@ -679,7 +1119,7 @@ async def update_history(
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations de l'historique !")
 
 
-@app.delete("/history/{history_id}")
+@app.delete("/history/{history_id}/")
 async def delete_role(db: db_dependency, history_id: int): 
 
     result = db.query(models.Historique).filter(models.Historique.id==history_id).first()
@@ -698,6 +1138,117 @@ async def delete_role(db: db_dependency, history_id: int):
         print(e)
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produite lors de la suppression de l'historique.")
 
+############################################################################################################
+
+
+########################################### ENTREPRISE ###########################################
+@app.get("/entreprises/")
+async def get_all_enterprise(db: db_dependency): 
+
+    result = db.query(models.Entreprise).all()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "Aucune entreprise"}})
+
+@app.get("/entreprises/{entreprise_id}/")
+async def get_enterprise(db: db_dependency, entreprise_id: int): 
+
+    result = db.query(models.Entreprise).filter(models.Entreprise.id==entreprise_id).first()
+    if result:
+        return result
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"data": {'message': "l'entreprise n'existe pas !"}})
+
+@app.post("/entreprises/")
+async def create_user(db: db_dependency, 
+    libelle: str = Form(...),
+    reference: str = Form(...),
+    nom_responsable: str = Form(...),
+    email_responsable: str = Form(...),
+    phone_responsable: str = Form(...),
+    ): 
+
+    today_date = datetime.now()
+    db_enterprise = models.Entreprise(
+        libelle=libelle,
+        reference=reference,
+        nom_responsable=nom_responsable,
+        email_responsable=email_responsable,
+        phone_responsable=phone_responsable,
+        createdAt=today_date,
+    )
+    try:
+        # Save  object to the database
+        db.add(db_enterprise)
+        db.commit()
+        db.refresh(db_enterprise)
+
+        return JSONResponse(status_code=status.HTTP_201_CREATED, content={"data": db_enterprise})
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation de l'entreprise !")
+
+@app.put("/entreprises/{entreprise_id}/")
+async def update_user(
+    db: db_dependency,
+    entreprise_id: int, 
+    libelle: Optional[str] = Form(None),
+    reference: Optional[str] = Form(None),
+    nom_responsable: Optional[str] = Form(None),
+    email_responsable: Optional[str] = Form(None),
+    phone_responsable: Optional[str] = Form(None),
+    ): 
+
+    db_enterprise = db.query(models.Entreprise).filter(models.Entreprise.id==entreprise_id).first()
+    today_date = datetime.now()
+
+    if db_enterprise:
+        if libelle:
+            db_enterprise.libelle=libelle
+        if reference:
+            db_enterprise.reference=reference
+        if nom_responsable:
+            db_enterprise.nom_responsable=nom_responsable
+        if email_responsable:
+            db_enterprise.email_responsable=email_responsable
+        if phone_responsable:
+            db_enterprise.phone_responsable=phone_responsable
+        
+        db_enterprise.updatedAt=today_date
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content="l'entreprise n'existe pas !")
+    try:
+        # Save  object to the database
+        db.commit()
+        db.refresh(db_enterprise)
+
+        return db_enterprise
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la mise a jour des informations de l'entreprise !")
+
+
+@app.delete("/entreprises/{entreprise_id}/")
+async def delete_enterprise(db: db_dependency, entreprise_id: int): 
+
+    result = db.query(models.Entreprise).filter(models.Entreprise.id==entreprise_id).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="L'entreprise n'existe pas !")
+    # print("before delete")
+    
+    try:
+        db.query(models.Entreprise).filter(models.Entreprise.id==entreprise_id).delete()
+        # print("delete")
+        db.commit()
+        return JSONResponse(status_code=status.HTTP_200_OK, content="L'entreprise à été supprimé !")
+        
+    except Exception as e:
+        print(e)
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produite lors de la suppression de l'entreprise")
+
+###########################################################################################################################
 
 
 
@@ -709,13 +1260,11 @@ async def delete_role(db: db_dependency, history_id: int):
 
 
 
-
-
-@app.get("/items/{item_id}")
+@app.get("/items/{item_id}/")
 async def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
-@app.put("/items/{item_id}")
+@app.put("/items/{item_id}/")
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name,  "item_price": item.price, "item_is_offer": item.is_offer, "item_id": item_id}
 
