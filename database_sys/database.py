@@ -10,8 +10,8 @@ pw_db = DATABASE["PASSWORD"]
 host_db = DATABASE["HOST"]
 port_db = DATABASE["PORT"]
 
-DATABASE_URL = "sqlite:///./sql_app.db"
-# DATABASE_URL = f"{engine_db}://{user_db}:{pw_db}@{host_db}:{port_db}/{name_db}"
+# DATABASE_URL = "sqlite:///./sql_app.db"
+DATABASE_URL = f"{engine_db}://{user_db}:{pw_db}@{host_db}:{port_db}/{name_db}"
 # DATABASE_URL = f"postgresql://postgres:carmello96@localhost:5432/formation_db"
 
 engine = create_engine(
