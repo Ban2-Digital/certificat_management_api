@@ -882,7 +882,7 @@ async def create_user(db: db_dependency,
         db.commit()
         db.refresh(db_user)
 
-        return JSONResponse(status_code=status.HTTP_201_CREATED, content={"data": db_user})
+        return db_user
     except Exception as e:
         print(e)
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content="Une erreur s'est produits lors de la creation de l'utilisateur !")
