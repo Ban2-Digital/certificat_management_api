@@ -87,28 +87,32 @@ async def delete_formation(
 
 @app.post("/formations/")
 async def create_formation(
-    db: db_dependency, 
-    libelle: str = Form(...),
-    description: str = Form(...),
-    status: int = Form(...),
-    formateurID: int = Form(...),
-    imageUrl: UploadFile = File(...)
+    db: db_dependency,
+    formation: FormationBase, 
+    # libelle: str, # = Form(...),
+    # description: str, # = Form(...),
+    # status: int, # = Form(...),
+    # formateurID: int, # = Form(...),
+    # imageUrl:Optional[str] # Optional[UploadFile] = File(None),
     ):
-    
-    upload_to = "formations"
-    # Save the uploaded file and get the URL
-    url = await save_upload_file(imageUrl, upload_to)
-
+    # print(formation)
+    if formation.imageUrl:
+        upload_to = "formations"
+        # Save the uploaded file and get the URL
+        url = await save_upload_file(formation.imageUrl, upload_to)
+    else:
+        url = ""
     today_date = datetime.now()
     # print("the image url :", url)
     db_formation = models.Formation(
-        libelle=libelle,
-        description=description,
+        libelle=formation.libelle,
+        description=formation.description,
         imageUrl=url,
-        status=status,
+        status=formation.status,
         createdAt=today_date,
-        formateurID=formateurID
+        formateurID=formation.formateurID
     )
+    print("db :", db_formation.id)
     try:
         # Save the Formation object to the database
         db.add(db_formation)
@@ -117,6 +121,7 @@ async def create_formation(
 
         return {"data": db_formation}
     except Exception as e:
+        print(e)
         return e
 
 

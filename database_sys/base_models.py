@@ -38,10 +38,8 @@ class AgentEntrepriseBase(BaseModel):
 class FormationBase(BaseModel):
     libelle : str
     description : str
-    imageUrl: UploadFile
+    imageUrl: Union[UploadFile, None]
     status : int
-    createAt : datetime
-    updatedAt : datetime
     formateurID : int
 
 class SessionBase(BaseModel):
